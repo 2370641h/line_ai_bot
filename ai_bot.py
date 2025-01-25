@@ -147,7 +147,7 @@ def send_periodic_message():
 
 # スケジューラーを設定
 scheduler = BackgroundScheduler()
-scheduler.add_job(send_periodic_message, 'interval', hours=10)  # 1分ごとに実行
+scheduler.add_job(send_periodic_message, 'interval', hours=10)  # 10時間ごとに実行
 scheduler.start()
 
 
