@@ -153,7 +153,6 @@ scheduler.start()
 
 # 　返信メッセージをAIから取得する関数
 def get_ai_response(from_user, text):
-
     # ユーザのメッセージを記録
     user_msg = {
         "role": "user",
