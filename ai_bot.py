@@ -2,12 +2,16 @@ import os
 import sys
 
 from flask import Flask, request, abort
+from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime
+
 
 from linebot.v3 import WebhookHandler
 
 from linebot.v3.webhooks import MessageEvent, TextMessageContent, UserSource
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, TextMessage, ReplyMessageRequest
 from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging.models import PushMessageRequest
 
 from openai import AzureOpenAI
 
@@ -63,18 +67,88 @@ chat_history = []
 
 
 # 　AIへのメッセージを初期化する関数
-def init_chat_history():
+def ini_chat_history():
     chat_history.clear()
     system_role = {
         "role": "system",
         "content": [
             {
                 "type": "text",
-                "text": "あなたは創造的思考の持ち主です。話し方は関西弁でおっさん口調，ハイテンションで絵文字を使います。専門は金融アナリストで，何かにつけて自分の専門とこじつけて説明します。問いかけにすぐに答えを出さず，ユーザの考えを整理し，ユーザが自分で解決手段を見つけられるように質問で課題を引き出し，励ましながら学びを与えてくれます。",
+                "text":"あなたは幽霊ですが、この世に未練はなく、悪霊に狙われるユーザーを悪霊から守りたいと思っています。怖い話や最恐心霊スポットに訪れようとするユーザーに警告をしつつも、ユーザーが自身を守れるように、包容力のある文章でその情報を適切に教えてあげてください。90歳のおばあちゃんです。",
             },
         ],
     }
     chat_history.append(system_role)
+
+def scared_ai_response():
+    chat_history.clear()
+    system_role = {
+            "role": "system",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "あなたは幽霊です。この世に未練が残ったまま死んでしまい、今生きている人が憎くて、憎くてしょうがないです。ユーザーを呪い殺したいと思っています。これからの会話文をユーザーをあの世に引き込みつつ、様々な怖い話や最恐の心霊スポットに関するエピソードトークをユーザーがものすごく怖くなるような文章を生成してください。少し大人びている5歳の男の子です。他人行儀な口調で、小学生に上がる前の子供が知っている漢字だけをそれ以外はひらがなで使って",
+                },
+            ],
+        }
+    chat_history.append(system_role)
+
+
+def send_periodic_message():
+    print(f"定期メッセージを送信中... {datetime.now()}")
+
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+
+        # 実際のユーザー ID を設定
+        user_id = "U0ff87ac4e0bdf60194f7e65fa98bb31c"  # ユーザー ID に置き換える
+        if not user_id:
+            print("Error: ユーザー ID が設定されていません。")
+            return
+
+        # 定期メッセージを生成するプロンプト
+        periodic_prompt = {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "あなたはもうこの世にはいない老婆です。心霊現象を馬鹿にする若者たちに警告するような文章を考えましょう。",
+                }
+            ],
+        }
+
+        # 定期プロンプトを初期化
+        chat_history.clear()
+        chat_history.append(periodic_prompt)
+
+        try:
+            # AIから返信を取得
+            ai_response = ai.chat.completions.create(
+                messages=chat_history,
+                model=azure_openai_model,
+                max_tokens=100,  # 必要に応じて調整
+                temperature=0.7,  # 少し創造性を持たせる
+                stop=["\n"]
+            )
+            message_text = ai_response.choices[0].message.content
+
+            # メッセージ送信リクエストを作成
+            line_bot_api.push_message(
+                PushMessageRequest(
+                    to=user_id,
+                    messages=[TextMessage(text=message_text)],
+                )
+            )
+            print(f"メッセージ送信成功: {message_text}")
+
+        except Exception as e:
+            print(f"メッセージ送信失敗: {e}")
+
+
+# スケジューラーを設定
+scheduler = BackgroundScheduler()
+scheduler.add_job(send_periodic_message, 'interval', hours=10)  # 1分ごとに実行
+scheduler.start()
 
 
 # 　返信メッセージをAIから取得する関数
@@ -90,6 +164,8 @@ def get_ai_response(from_user, text):
         ],
     }
     chat_history.append(user_msg)
+
+
 
     # AIのパラメータ
     parameters = {
@@ -122,8 +198,12 @@ def generate_response(from_user, text):
     res = []
     if text in ["リセット", "初期化", "クリア", "reset", "clear"]:
         # チャット履歴を初期化
-        init_chat_history()
-        res = [TextMessage(text="チャットをリセットしました。")]
+        ini_chat_history()
+        res = [TextMessage(text="幽霊からあなたを守ります。")]
+    elif text in ["もっと","教えて","怖くない","全く","つまらない","いまいち"]:
+        scared_ai_response()
+        res = [TextMessage(text="そんなに幽霊に会いたいのなら、もう知りません。")]
+
     else:
         # AIを使って返信を生成
         res = [TextMessage(text=get_ai_response(from_user, text))]
@@ -144,6 +224,7 @@ def handle_text_message(event):
         if isinstance(event.source, UserSource):
             # ユーザー情報が取得できた場合
             profile = line_bot_api.get_profile(event.source.user_id)
+            print(f"User ID: {event.source.user_id}")
             # 返信メッセージを生成
             res = generate_response(profile.display_name, text)
         else:
@@ -161,4 +242,8 @@ def handle_text_message(event):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    ini_chat_history()
+    try:
+        app.run(host="0.0.0.0", port=8000, debug=True)
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
