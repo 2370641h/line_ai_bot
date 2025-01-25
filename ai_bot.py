@@ -153,6 +153,7 @@ scheduler.start()
 
 # 　返信メッセージをAIから取得する関数
 def get_ai_response(from_user, text):
+
     if not chat_history:
         ini_chat_history()
     # ユーザのメッセージを記録
