@@ -64,7 +64,7 @@ def callback():
 
 
 chat_history = []
-
+ini_chat_history()
 
 # 　AIへのメッセージを初期化する関数
 def ini_chat_history():
