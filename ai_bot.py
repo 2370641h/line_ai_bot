@@ -64,7 +64,7 @@ def callback():
 
 
 chat_history = []
-ini_chat_history()
+
 
 # 　AIへのメッセージを初期化する関数
 def ini_chat_history():
@@ -215,7 +215,7 @@ def generate_response(from_user, text):
 def handle_text_message(event):
     # 送られてきたメッセージを取得
     text = event.message.text
-
+    ini_chat_history()
     # 返信メッセージの送信
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
@@ -242,7 +242,7 @@ def handle_text_message(event):
 
 
 if __name__ == "__main__":
-    ini_chat_history()
+
     try:
         app.run(host="0.0.0.0", port=8000, debug=True)
     except (KeyboardInterrupt, SystemExit):
