@@ -192,10 +192,17 @@ def get_ai_response(from_user, text):
     chat_history.append(ai_msg)
     return res_text
 
+program_initialized=False
 
 # 　返信メッセージを生成する関数
 def generate_response(from_user, text):
+    global program_initialized
     res = []
+    if not program_initialized:
+        program_initialized=True
+        ini_chat_history()
+
+
     if text in ["リセット", "初期化", "クリア", "reset", "clear"]:
         # チャット履歴を初期化
         ini_chat_history()
@@ -215,7 +222,6 @@ def generate_response(from_user, text):
 def handle_text_message(event):
     # 送られてきたメッセージを取得
     text = event.message.text
-    ini_chat_history()
     # 返信メッセージの送信
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
